@@ -1,18 +1,24 @@
 # Analyse the old system (P_n)
 
-Read the specification in /spec/api_spec.md.
-Then analyse every file in /old-system/.
+Read these files first:
+1. /spec/api_spec.md — the specification
+2. /spec/sovereignty_themes.md — the 7 EU sovereignty themes
+3. /transformation/patterns.md — known transformation patterns
 
-Run the deterministic analyzer first:
+Run the deterministic analyzer:
 
 python3 analyzer.py old-system --json
 
-Using the analyzer output AND your own reading of the code, produce a report in /analysis/lock-in-report.md that contains:
+Using the analyzer output (deterministic — source of truth) AND your own
+reading of the code (stochastic — reasoning), produce a report in
+/analysis/lock-in-report.md that contains:
 
-1. **Cloud dependencies found** — which files, which imports, which AWS service
-2. **Lock-in classification** — for each dependency, what type of lock-in (API-level, service-level, data-level)
-3. **Sovereignty risk** — which of the 7 sovereignty themes each dependency violates
-4. **Migration complexity** — easy/medium/hard for each dependency to replace
-5. **Summary** — total lock-in points, overall risk assessment
+1. **Cloud dependencies found** — from analyzer output (deterministic)
+2. **Lock-in classification** — your assessment: API-level, service-level, data-level (stochastic)
+3. **Sovereignty risk** — check against the 7 themes (deterministic checklist)
+4. **Pattern match** — does each dependency match a known pattern from patterns.md? (deterministic lookup)
+5. **Migration complexity** — your judgment: easy/medium/hard (stochastic)
+6. **Summary** — total lock-in points, overall risk
 
-Be precise. Use the deterministic analyzer output as the source of truth for what exists in the code.
+The analyzer provides the facts. You provide the interpretation.
+Stochastic for analysis. Deterministic for ground truth.

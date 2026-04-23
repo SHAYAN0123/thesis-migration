@@ -1,24 +1,26 @@
 # Verify semantic equivalence (S_n satisfied by both P_n and P_n+1)
 
-Run the deterministic analyzer on both systems:
+Run the deterministic tools first:
 
 python3 analyzer.py old-system --json
 python3 analyzer.py new-system --json
+python3 -m pytest evidence/ -v
+TEST_SYSTEM_PATH=new-system python3 -m pytest evidence/ -v
 
-Then produce a verification report in /analysis/verification-report.md:
+These four commands give you the facts. Now interpret them.
 
-1. **Structural comparison** — files, functions, classes in old vs new
-2. **Cloud dependencies removed** — what was removed, what replaced it
-3. **Cloud dependencies remaining** — any lock-in still present in new-system?
-4. **Test results** — run tests against both systems, report pass/fail rates
+Produce a verification report in /analysis/verification-report.md:
+
+1. **Structural comparison** — from analyzer (deterministic): files, functions, classes in old vs new
+2. **Cloud dependencies removed** — from analyzer (deterministic): what was removed, what replaced it
+3. **Cloud dependencies remaining** — from analyzer (deterministic): any lock-in left?
+4. **Test results** — from pytest (deterministic): pass/fail rates on both systems
 5. **Sovereignty compliance** — check new-system against the 7 themes:
-   - Jurisdiction: no dependency on non-EU cloud provider APIs?
-   - Localisation: data stays local?
-   - Autonomy: can operate independently?
-   - Lock-in Avoidance: no vendor-specific APIs?
-   - Supply-Chain Control: no single vendor dependency?
-   - Openness: uses open standards?
-   - Sustainability: portable and maintainable?
-6. **Semantic equivalence verdict** — same spec, same tests, same behavior?
+   - Jurisdiction, Localisation, Autonomy, Lock-in Avoidance, Supply-Chain Control, Openness, Sustainability
+6. **Pattern compliance** — were the patterns from /transformation/patterns.md followed correctly?
+7. **Semantic equivalence verdict** — same spec, same tests, same behavior?
+8. **Honest limitations** — what doesn't this prove? What could still be wrong?
 
-Be honest about what passes and what doesn't.
+The deterministic tools provide the evidence.
+You provide the verdict and honest assessment.
+Stochastic for interpretation. Deterministic for proof.

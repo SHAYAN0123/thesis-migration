@@ -1,19 +1,34 @@
 # Transform P_n to P_n+1 (cloud-native to cloud-agnostic)
 
-Read the specification in /spec/api_spec.md.
-Read the lock-in report in /analysis/lock-in-report.md.
-Read all code in /old-system/.
+Read these files first:
+1. /spec/api_spec.md — the specification (S_n) that must not change
+2. /analysis/lock-in-report.md — what cloud dependencies exist
+3. /transformation/patterns.md — the formal transformation patterns to follow
+4. All code in /old-system/
 
-Generate a cloud-agnostic version in /new-system/ that:
+For each cloud dependency found in the lock-in report, apply the matching
+pattern from patterns.md:
 
-1. Satisfies the SAME specification (S_n does not change)
-2. Replaces DynamoDB with SQLite (portable, no vendor lock-in)
-3. Replaces S3 with local filesystem storage (portable)
-4. Replaces SQS with a simple in-memory queue or file-based queue (portable)
-5. Keeps app.py as close to the original as possible
-6. Keeps the same function signatures in database.py, storage.py, notifications.py
+- Pattern 1 (Database): boto3 DynamoDB → SQLite
+- Pattern 2 (Storage): boto3 S3 → local filesystem
+- Pattern 3 (Queue): boto3 SQS → JSONL file queue
+- Pattern 4 (Config): cloud-specific env vars → generic paths
 
-The API must behave identically. Only the infrastructure layer changes.
-The tests in /evidence/ must pass on this new version.
+Rules:
+- Function signatures MUST NOT change (Interface Preservation Principle)
+- app.py MUST remain identical — copy it, do not modify it
+- Only infrastructure modules change (database.py, storage.py, notifications.py, config.py)
+- requirements.txt: remove boto3, keep only stdlib + flask
+- Use stdlib only for replacements (sqlite3, os, shutil, json)
 
-Document every change you make in /transformation/changes.md.
+Generate all files in /new-system/.
+
+After generating, run:
+- python3 analyzer.py new-system --json (confirm 0 cloud dependencies)
+- python3 -m pytest evidence/ -v (confirm all tests pass on old-system)
+- TEST_SYSTEM_PATH=new-system python3 -m pytest evidence/ -v (confirm all tests pass on new-system)
+
+Document every change in /transformation/changes.md.
+
+Stochastic: you generate the code.
+Deterministic: the analyzer and tests verify it.
