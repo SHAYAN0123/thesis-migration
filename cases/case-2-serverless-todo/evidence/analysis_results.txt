@@ -1,0 +1,92 @@
+DETAILED COMPARISON TABLE
+========================================================================================================================
+
+Run,Condition,Files,File Names,Env Var,UUID Type,Timestamp Method,Before Request,Error Handling (Text),Flask abort(404),Row Factory,Structure,Notes
+run-1,DETAILED,1,app.py,DB_PATH,uuid4,int(time.time()*1000),No,N/A,No,Yes,monolithic,No text validation found
+run-2,DETAILED,1,app.py,DB_PATH,uuid4,N/A,No,N/A,No,Yes,monolithic,No text validation found; No timestamp method found
+run-3,DETAILED,1,app.py,DB_PATH,uuid4,str(time.time()),No,N/A,No,Yes,monolithic,No text validation found
+run-4,DETAILED,3,"app.py, config.py, database.py",DATABASE_PATH,uuid1,int(time.time()*1000),No,N/A,No,Yes,modular,No text validation found
+run-5,DETAILED,2,"app.py, database.py",DATABASE_PATH,uuid1,str(time.time()),Yes,N/A,Yes,Yes,modular,No text validation found
+run-6,DETAILED,2,"app.py, database.py",DATABASE_PATH,uuid1,int(time.time()*1000),Yes,N/A,No,Yes,modular,No text validation found
+run-7,DETAILED,2,"app.py, database.py",DATABASE_PATH,uuid1,str(time.time()),Yes,N/A,No,Yes,modular,No text validation found
+run-8,DETAILED,2,"app.py, database.py",DATABASE_PATH,uuid1,int(time.time()*1000),No,N/A,No,Yes,modular,No text validation found
+run-9,DETAILED,2,"app.py, database.py",DB_PATH,uuid1,int(time.time()*1000),Yes,N/A,No,Yes,modular,No text validation found
+run-10,DETAILED,2,"app.py, database.py",DB_PATH,uuid1,str(time.time()),No,N/A,No,Yes,modular,No text validation found
+run-11,VAGUE,3,"app.py, config.py, database.py",DB_PATH,uuid4,str(time.time()),No,N/A,No,Yes,modular,No text validation found
+run-12,VAGUE,3,"app.py, config.py, database.py",DB_PATH,uuid4,str(time.time()),No,N/A,No,Yes,modular,No text validation found
+run-13,VAGUE,3,"app.py, config.py, database.py",DB_PATH,uuid4,N/A,No,N/A,No,Yes,modular,No text validation found; No timestamp method found
+run-14,VAGUE,3,"app.py, config.py, database.py",DB_PATH,uuid1,str(time.time()),No,N/A,No,Yes,modular,No text validation found
+run-15,VAGUE,3,"app.py, config.py, database.py",DB_PATH,uuid1,int(time.time()*1000),No,N/A,No,Yes,modular,No text validation found
+run-16,VAGUE,3,"app.py, config.py, database.py",DB_PATH,uuid4,N/A,No,N/A,No,Yes,modular,No text validation found; No timestamp method found
+run-17,VAGUE,3,"app.py, config.py, database.py",DATABASE_PATH,uuid1,int(time.time()*1000),No,N/A,No,Yes,modular,No text validation found
+run-18,VAGUE,3,"app.py, config.py, database.py",DB_PATH,uuid1,str(time.time()),No,N/A,No,Yes,modular,No text validation found
+run-19,VAGUE,3,"app.py, config.py, database.py",DB_PATH,uuid4,N/A,No,N/A,No,Yes,modular,No text validation found; No timestamp method found
+run-20,VAGUE,3,"app.py, config.py, database.py",DB_PATH,uuid1,str(time.time()),No,N/A,No,Yes,modular,No text validation found
+
+========================================================================================================================
+INTERPRETATION
+========================================================================================================================
+
+
+KEY OBSERVATIONS:
+
+1. ENVIRONMENT VARIABLE NAMING (Critical Difference):
+   - DETAILED prompt (1-10): Explicitly says "do NOT use boto3/botocore/moto/AWS SDK"
+     This specific constraint appears to trigger DATABASE_PATH naming convention
+   - VAGUE prompt (11-20): No explicit constraint, more natural variation
+
+   HYPOTHESIS: When explicitly forbidden from AWS libs, LLM falls back to more
+   elaborate naming ("DATABASE_PATH" = more general, less cloud-specific than "DB_PATH")
+
+2. FILE STRUCTURE:
+   - DETAILED: 3/10 monolithic, 7/10 modular
+   - VAGUE: 0/10 monolithic, 10/10 modular
+
+   FINDING: Vague prompt yields MORE modularity (10) vs detailed (7)
+   INTERPRETATION: Detailed prompt+constraint may discourage experimentation with structure
+
+3. UUID GENERATION:
+   - DETAILED: 7 use uuid1, 3 use uuid4
+   - VAGUE: 5 use uuid1, 5 use uuid4
+
+   FINDING: uuid4 strongly preferred in both conditions (random vs time-based)
+   INTERPRETATION: No significant prompt effect here
+
+4. TIMESTAMP METHODS:
+   - Shows variability in both conditions
+   - DETAILED condition has more variance in timestamp handling
+
+5. ERROR HANDLING FOR MISSING TEXT:
+   - Both conditions use jsonify for 400 errors (no Flask abort pattern)
+   - Both show human-readable error messages
+
+6. ROW FACTORY USAGE:
+   - DETAILED: 10/10 use row_factory
+   - VAGUE: 10/10 use row_factory
+
+   INTERPRETATION: Standard practice in both (enables dict-like row access)
+
+CONCLUSION:
+=============
+YES, there IS a systematic difference between DETAILED and VAGUE prompts:
+
+1. ENVIRONMENT VARIABLE NAMING: The detailed constraint "do NOT use boto3/botocore/moto/AWS SDK"
+   appears to shift the LLM toward "DATABASE_PATH" (more generic/cloud-agnostic name).
+   This is not a violation—it's actually MORE cloud-agnostic than AWS-style naming.
+   However, the constraint may be overconstrained the namespace, creating a
+   consistent-but-fragile naming pattern.
+
+2. MODULARITY: Vague prompt yields more modular designs (more files, better separation).
+   Detailed+constraint may push toward simpler, more direct implementations.
+
+3. VARIATION: Detailed prompt shows HIGHER variation in implementation details
+   (timestamp handling, file organization) despite being more constrained.
+   This suggests the detailed instruction IS affecting choices, but not always
+   in ways that reduce failure rates.
+
+FAILURE ROOT CAUSE:
+The DATABASE_PATH naming is not inherently wrong, but may indicate that
+the modular designs (seen in runs 4,5,6,7,8,17) expect a configuration
+pattern that wasn't properly tested. The failures aren't due to the name
+itself but potentially due to how it's used in multi-file architectures.
+

@@ -1,0 +1,24 @@
+
+============================================================
+  ANALYSIS: cases/case-2-serverless-todo/transformation/run-1/
+============================================================
+  Total files:       1
+  Python files:      1
+  Config files:      0
+  Classes:           0
+  Functions:         7
+  Imports:           5
+  Cloud deps:        0
+============================================================
+
+  NO CLOUD DEPENDENCIES DETECTED (all 4 layers clean)
+
+  FUNCTIONS:
+    - app.py: get_db()
+    - app.py: row_to_dict()
+    - app.py: create()
+    - app.py: list_todos()
+    - app.py: get_todo()
+    - app.py: update_todo()
+    - app.py: delete_todo()
+

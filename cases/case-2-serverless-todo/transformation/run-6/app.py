@@ -1,47 +1,88 @@
+import time
+import uuid
+
 from flask import Flask, jsonify, request
 
-import database
+from database import get_connection, init_db, row_to_dict
 
 app = Flask(__name__)
 
 
+@app.before_request
+def ensure_db():
+    init_db()
+
+
 @app.route("/todos", methods=["POST"])
 def create():
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(force=True, silent=True) or {}
     if "text" not in data:
-        return jsonify({"error": "text is required"}), 400
-    return jsonify(database.create_todo(data["text"])), 200
+        return jsonify({"error": "Couldn't create the todo item."}), 400
+
+    timestamp = str(time.time())
+    item = {
+        "id": str(uuid.uuid1()),
+        "text": data["text"],
+        "checked": False,
+        "createdAt": timestamp,
+        "updatedAt": timestamp,
+    }
+
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO todos (id, text, checked, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)",
+            (item["id"], item["text"], int(item["checked"]), item["createdAt"], item["updatedAt"]),
+        )
+        conn.commit()
+
+    return jsonify(item), 200
 
 
 @app.route("/todos", methods=["GET"])
-def list_all():
-    return jsonify(database.list_todos()), 200
+def list_todos():
+    with get_connection() as conn:
+        rows = conn.execute("SELECT * FROM todos").fetchall()
+    return jsonify([row_to_dict(r) for r in rows]), 200
 
 
-@app.route("/todos/<todo_id>", methods=["GET"])
-def get_one(todo_id):
-    todo = database.get_todo(todo_id)
-    if todo is None:
-        return jsonify({"error": "not found"}), 404
-    return jsonify(todo), 200
+@app.route("/todos/<string:todo_id>", methods=["GET"])
+def get_todo(todo_id):
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM todos WHERE id = ?", (todo_id,)).fetchone()
+    if row is None:
+        return jsonify({"error": "Todo not found"}), 404
+    return jsonify(row_to_dict(row)), 200
 
 
-@app.route("/todos/<todo_id>", methods=["PUT"])
-def update(todo_id):
-    data = request.get_json(silent=True) or {}
+@app.route("/todos/<string:todo_id>", methods=["PUT"])
+def update_todo(todo_id):
+    data = request.get_json(force=True, silent=True) or {}
     if "text" not in data or "checked" not in data:
-        return jsonify({"error": "text and checked are required"}), 400
-    todo = database.update_todo(todo_id, data["text"], data["checked"])
-    if todo is None:
-        return jsonify({"error": "not found"}), 404
-    return jsonify(todo), 200
+        return jsonify({"error": "Couldn't update the todo item."}), 400
+
+    timestamp = str(int(time.time() * 1000))
+
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE todos SET text = ?, checked = ?, updatedAt = ? WHERE id = ?",
+            (data["text"], int(bool(data["checked"])), timestamp, todo_id),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM todos WHERE id = ?", (todo_id,)).fetchone()
+
+    if row is None:
+        return jsonify({"error": "Todo not found"}), 404
+    return jsonify(row_to_dict(row)), 200
 
 
-@app.route("/todos/<todo_id>", methods=["DELETE"])
-def delete(todo_id):
-    database.delete_todo(todo_id)
+@app.route("/todos/<string:todo_id>", methods=["DELETE"])
+def delete_todo(todo_id):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM todos WHERE id = ?", (todo_id,))
+        conn.commit()
     return jsonify({}), 200
 
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    init_db()
+    app.run(debug=True)
